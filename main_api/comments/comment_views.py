@@ -2,22 +2,60 @@ from .comment_serializers import CommentSerializer
 from .comment_models import CommentModel
 from rest_framework.views import APIView 
 from rest_framework.response import Response
+from posts.models import PostModel
 
 class CommentListView(APIView): 
   def get(self, request): 
     try: 
-      allComments = CommentModel.objects.all()
-      print(allComments)
-      serialized_comments = CommentSerializer(allComments, many=True)
+      comments = CommentModel.objects.all().select_related("post")
+      serialized_comments = CommentSerializer(comments, many=True)  
       
-      return Response(serialized_comments)
+      return Response(serialized_comments.data)
     except Exception as error: 
       print(error)
       return Response("something went wrong")
     
   def post(self, request): 
     try: 
-      print(request.data)
+      print(request.data, request.data["post"])
+      
+      related_post = PostModel.objects.get(id = request.data["post"])
+      print("data passed here too", related_post)
+      
+      new_comment = CommentModel.objects.create(body = request.data["body"])
+      new_comment.post = related_post
+    
+      new_comment.save()
       
       return Response(request.data)
-    except: return Response("something sent wrong again")
+    except Exception  as error:
+      print(error)
+      return Response("something sent wrong again")
+    
+class CommentByIdView(APIView): 
+  def get(self, request, commentId: int): 
+    try: 
+      currentComment = CommentModel.objects.select_related("post").get(id = commentId)
+
+      serialized_comment = CommentSerializer(currentComment)
+      
+      return Response(serialized_comment.data)
+      
+    except: return Response("no comment found") 
+     
+  def delete(self, request, commentId: int): 
+    try: 
+      deleting_comment = CommentModel.objects.get(id=commentId)
+      deleting_comment.delete()
+      
+      serialized_comment = CommentSerializer(deleting_comment)
+      
+      return Response(serialized_comment.data)
+    except: return Response("can't be deleted")
+  
+  def put(self, request, commentId: int): 
+    try: 
+      updatingPost = CommentModel.objects.filter(id = commentId).update(**request.data)
+      
+      return Response(updatingPost)
+    except: return Response("Can't update comment")
