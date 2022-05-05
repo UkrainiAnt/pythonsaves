@@ -4,19 +4,27 @@ from rest_framework.views import APIView
 from .models import PostModel
 from rest_framework.response import Response
 from .serializers import PostSerializer
+from rest_framework.permissions import IsAuthenticated
+from users.models import UserModel
+
 # Create your views here.
 
 class PostView(APIView): 
+  permission_classes = [IsAuthenticated]
   
   def get(self, request): 
-    selectedPost = PostModel.objects.all()
+    selectedPost = PostModel.objects.select_related("user").all()
     serializedPosts = PostSerializer(selectedPost, many=True)
-    
+
     return Response(serializedPosts.data)
     
   def post(self, request): 
+    print(request.user)
     new_post_data = request.data 
     new_post = PostModel(**request.data)
+    
+    current_user = UserModel.objects.get(email=request.user)
+    new_post.user = current_user
     new_post.save()
     
     return Response(new_post_data) 
@@ -26,7 +34,11 @@ class PostByIdView(APIView):
   def get(self, request, postId: int): 
     try: 
       currentPost = PostModel.objects.get(id = postId)
-    except: return Response("nothing where found")
+      print(currentPost.commentmodel_set.all())
+      
+    except Exception as error:
+      print(error)
+      return Response("nothing where found")
     serializedPost = PostSerializer(currentPost)
     
     return Response(serializedPost.data)

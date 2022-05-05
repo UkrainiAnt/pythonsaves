@@ -1,12 +1,24 @@
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
-# Create your models here.
+from .managers import CustomUserManager
 
-userAvatar = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiCoHLktPNbzYjYcrFoYnlmxX5SfRKCIJQsA&usqp=CAU"
+default_image = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/User-avatar.svg/1024px-User-avatar.svg.png"
 
-class UserModel(models.Model): 
-  name = models.CharField(max_length=100)
-  email = models.EmailField(max_length=100)
-  password = models.CharField(max_length=100)
-  created_at = models.DateTimeField(auto_now_add=True, blank=True)
-  picture = models.URLField(default=userAvatar)
+class UserModel(AbstractBaseUser, PermissionsMixin, models.Model):
+    email = models.EmailField(_('email address'), unique=True)
+    is_admin = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    picture = models.URLField(max_length=200, default=default_image)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    objects = CustomUserManager()
+
+    def __str__(self):
+        return self.email

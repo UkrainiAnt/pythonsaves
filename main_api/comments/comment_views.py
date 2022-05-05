@@ -1,8 +1,9 @@
-from .comment_serializers import CommentSerializer 
+from .comment_serializers import CommentSerializer
 from .comment_models import CommentModel
 from rest_framework.views import APIView 
 from rest_framework.response import Response
 from posts.models import PostModel
+from users.models import UserModel
 
 class CommentListView(APIView): 
   def get(self, request): 
@@ -16,14 +17,14 @@ class CommentListView(APIView):
       return Response("something went wrong")
     
   def post(self, request): 
-    try: 
-      print(request.data, request.data["post"])
+    try:       
+      new_comment = CommentModel.objects.create(body = request.data["body"])
       
       related_post = PostModel.objects.get(id = request.data["post"])
-      print("data passed here too", related_post)
+      current_user = UserModel.objects.get(email = request.user)
       
-      new_comment = CommentModel.objects.create(body = request.data["body"])
       new_comment.post = related_post
+      new_comment.user = current_user
     
       new_comment.save()
       
